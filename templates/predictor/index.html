@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Quality Predictor Pro</title>
+    <!-- Include Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --deep-water-blue: #0A2342;
+            --ocean-blue: #1F4287;
+            --river-blue: #3C6997;
+            --water-teal: #5CA4A9;
+            --aqua-accent: #84B4C8;
+            --gradient-primary: linear-gradient(135deg, #0A2342 0%, #1F4287 50%, #3C6997 100%);
+            --gradient-secondary: linear-gradient(45deg, #5CA4A9 0%, #84B4C8 100%);
+            --text-primary: #FFFFFF;
+            --text-secondary: #E0E0E0;
+            --background-overlay: rgba(10, 35, 66, 0.7);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--gradient-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            perspective: 1000px;
+            color: var(--text-primary);
+        }
+
+        .app-container {
+            display: flex;
+            width: 90%;
+            max-width: 900px;
+            background: var(--background-overlay);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(10, 35, 66, 0.3);
+            backdrop-filter: blur(15px);
+            overflow: hidden;
+            height: 90vh;
+            overflow-y: auto;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: rgba(255,255,255,0.05);
+            border-right: 1px solid rgba(255,255,255,0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100%;
+        }
+
+        .sidebar-title {
+            text-align: center;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            background: var(--gradient-secondary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 10px;
+        }
+
+        .sidebar-menu button {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--river-blue);
+            color: var(--text-primary);
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .sidebar-menu button.active {
+            background: var(--gradient-secondary);
+            color: var(--deep-water-blue);
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 2em;
+            margin-bottom: 20px;
+            background: var(--gradient-secondary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .form-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--aqua-accent);
+            font-weight: 600;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid var(--river-blue);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1em;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        #waterQualityForm button, #contaminantForm button {
+            width: 100%;
+            padding: 15px;
+            background: var(--gradient-secondary);
+            color: var(--deep-water-blue);
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            cursor: pointer;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .result-container {
+            margin-top: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .info-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--river-blue);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 300px; /* Increased height for better visibility */
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 40vh; /* Adjusted to accommodate chart */
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid var(--river-blue);
+            text-align: left;
+            font-size: 0.9em;
+        }
+
+        th {
+            background: rgba(255,255,255,0.1);
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            background: rgba(255,255,255,0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="sidebar-title">Water Quality Pro</div>
+            <ul class="sidebar-menu">
+                <li><button class="tab-btn active" data-tab="waterQualityTab">Water Quality</button></li>
+                <li><button class="tab-btn" data-tab="contaminantTab">Contaminant Check</button></li>
+                <li><button class="tab-btn" data-tab="historicalDataTab">Historical Data</button></li>
+                <li><button class="tab-btn" data-tab="recommendationsTab">Recommendations</button></li>
+            </ul>
+        </div>
+        <div class="main-content">
+            <!-- Water Quality Tab -->
+            <div id="waterQualityTab" class="tab-content active">
+                <h1 class="title">Water Quality Predictor</h1>
+                <form id="waterQualityForm">
+                    <div class="form-container">
+                        <div class="input-group">
+                            <label for="ph">pH Level:</label>
+                            <input type="number" step="0.1" name="ph" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="hardness">Water Hardness:</label>
+                            <input type="number" step="0.1" name="hardness" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="solids">Total Dissolved Solids:</label>
+                            <input type="number" step="0.1" name="solids" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="chloramines">Chloramines:</label>
+                            <input type="number" step="0.1" name="chloramines" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="sulfate">Sulfate Concentration:</label>
+                            <input type="number" step="0.1" name="sulfate" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="conductivity">Water Conductivity:</label>
+                            <input type="number" step="0.1" name="conductivity" required>
+                        </div>
+                    </div>
+                    <button type="submit">Analyze Water Quality</button>
+                </form>
+                <div id="waterQualityResult" class="result-container"></div>
+            </div>
+
+            <!-- Contaminant Check Tab -->
+            <div id="contaminantTab" class="tab-content">
+                <h1 class="title">Contaminant Screening</h1>
+                <form id="contaminantForm">
+                    <div class="input-group">
+                        <label for="waterSource">Water Source:</label>
+                        <select name="waterSource" required>
+                            <option value="">Select Water Source</option>
+                            <option value="groundwater">Groundwater</option>
+                            <option value="surface">Surface Water</option>
+                            <option value="municipal">Municipal Supply</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="contaminantType">Suspected Contaminant:</label>
+                        <select name="contaminantType" required>
+                            <option value="">Select Contaminant</option>
+                            <option value="heavy_metals">Heavy Metals</option>
+                            <option value="pesticides">Pesticides</option>
+                            <option value="microplastics">Microplastics</option>
+                        </select>
+                    </div>
+                    <button type="submit">Check Contaminants</button>
+                </form>
+                <div id="contaminantResult" class="result-container"></div>
+            </div>
+
+            <!-- Historical Data Tab -->
+            <div id="historicalDataTab" class="tab-content">
+                <h1 class="title">Historical Water Quality</h1>
+                <div class="result-container" id="historicalInsights">
+                    <div class="info-card">
+                        <h3>Data Insights</h3>
+                        <p id="insightSummary">Loading insights...</p>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="waterQualityChart"></canvas>
+                </div>
+                <div class="table-container">
+                    <table id="historicalTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>pH</th>
+                                <th>Hardness</th>
+                                <th>Solids</th>
+                                <th>Chloramines</th>
+                                <th>Sulfate</th>
+                                <th>Conductivity</th>
+                                <th>Prediction</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historicalTableBody">
+                            <tr><td colspan="8">Loading data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Recommendations Tab -->
+            <div id="recommendationsTab" class="tab-content">
+                <h1 class="title">Water Treatment Recommendations</h1>
+                <div id="recommendationResults" class="result-container">
+                    <div class="info-card">
+                        <h3>Recommended Actions</h3>
+                        <ul id="recommendationList"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab Navigation
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+
+                button.classList.add('active');
+                const tabId = button.dataset.tab;
+                document.getElementById(tabId).classList.add('active');
+
+                if (tabId === 'historicalDataTab') {
+                    loadHistoricalData();
+                }
+            });
+        });
+
+        // Water Quality Form Submission
+        document.getElementById('waterQualityForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            let formData = new FormData(this);
+            let data = {
+                ph: formData.get('ph'),
+                hardness: formData.get('hardness'),
+                solids: formData.get('solids'),
+                chloramines: formData.get('chloramines'),
+                sulfate: formData.get('sulfate'),
+                conductivity: formData.get('conductivity')
+            };
+
+            for (let key in data) {
+                if (!data[key] || isNaN(parseFloat(data[key]))) {
+                    document.getElementById('waterQualityResult').innerHTML = `
+                        <div class="info-card">
+                            <p style="color: red;">Please enter valid numbers for all fields.</p>
+                        </div>
+                    `;
+                    return;
+                }
+            }
+
+            fetch('/predict/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                let resultDiv = document.getElementById('waterQualityResult');
+                resultDiv.innerHTML = '';
+                if (result.status === 'success') {
+                    resultDiv.innerHTML = `
+                        <div class="info-card">
+                            <h3>Water Quality Analysis</h3>
+                            <p>Prediction: ${result.prediction}</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="info-card">
+                            <p style="color: red;">Error: ${result.message}</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('waterQualityResult').innerHTML = `
+                    <div class="info-card">
+                        <p style="color: red;">An error occurred. Please try again.</p>
+                    </div>
+                `;
+            });
+        });
+
+        // Contaminant Form Submission
+        document.getElementById('contaminantForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            let formData = new FormData(this);
+            let data = Object.fromEntries(formData);
+
+            let resultDiv = document.getElementById('contaminantResult');
+            resultDiv.innerHTML = '';
+
+            setTimeout(() => {
+                let contaminantResults = analyzeContaminants(data);
+                
+                let resultHTML = `
+                    <div class="info-card">
+                        <h3>Contaminant Analysis</h3>
+                        <p>Source: ${data.waterSource}</p>
+                        <p>Suspected Contaminant: ${data.contaminantType}</p>
+                        <p>Risk Level: ${contaminantResults.riskLevel}</p>
+                        <p>Recommendations: ${contaminantResults.recommendations}</p>
+                    </div>
+                `;
+                
+                resultDiv.innerHTML = resultHTML;
+            }, 1000);
+        });
+
+        // Fetch Historical Data and Render Chart
+        function loadHistoricalData() {
+            fetch('/historical/', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Update table
+                const tableBody = document.getElementById('historicalTableBody');
+                tableBody.innerHTML = '';
+                if (data.predictions.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="8">No data available.</td></tr>';
+                } else {
+                    data.predictions.forEach(p => {
+                        tableBody.innerHTML += `
+                            <tr>
+                                <td>${p.created_at}</td>
+                                <td>${p.ph}</td>
+                                <td>${p.hardness}</td>
+                                <td>${p.solids}</td>
+                                <td>${p.chloramines}</td>
+                                <td>${p.sulfate}</td>
+                                <td>${p.conductivity}</td>
+                                <td>${p.prediction}</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                // Update insights
+                const insightSummary = document.getElementById('insightSummary');
+                insightSummary.innerHTML = `
+                    Total Predictions: ${data.insights.total_predictions}<br>
+                    Safe: ${data.insights.safe_percentage}% | Unsafe: ${data.insights.unsafe_percentage}%<br>
+                    Average pH: ${data.insights.averages.ph}<br>
+                    Average Hardness: ${data.insights.averages.hardness}<br>
+                    Average Solids: ${data.insights.averages.solids}<br>
+                    Average Chloramines: ${data.insights.averages.chloramines}<br>
+                    Average Sulfate: ${data.insights.averages.sulfate}<br>
+                    Average Conductivity: ${data.insights.averages.conductivity}
+                `;
+
+                // Render Chart (pH over time)
+                const ctx = document.getElementById('waterQualityChart').getContext('2d');
+                if (window.myChart) window.myChart.destroy(); // Destroy previous chart instance
+                window.myChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.predictions.map(p => p.created_at),
+                        datasets: [{
+                            label: 'pH Level Over Time',
+                            data: data.predictions.map(p => p.ph),
+                            borderColor: 'rgba(92, 164, 169, 1)', // Matches water-teal
+                            backgroundColor: 'rgba(92, 164, 169, 0.2)',
+                            fill: true,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                title: {
+                                    display: true,
+                                    text: 'pH Level'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('historicalTableBody').innerHTML = `
+                    <tr><td colspan="8">Error loading data.</td></tr>
+                `;
+                document.getElementById('insightSummary').innerHTML = 'Error loading insights.';
+            });
+        }
+
+        // Contaminant Analysis Function
+        function analyzeContaminants(data) {
+            const contaminantRisks = {
+                "groundwater": {
+                    "heavy_metals": {
+                        riskLevel: "High",
+                        recommendations: "Immediate professional testing and potential treatment required"
+                    },
+                    "pesticides": {
+                        riskLevel: "Medium",
+                        recommendations: "Conduct detailed chemical analysis and consider filtration"
+                    },
+                    "microplastics": {
+                        riskLevel: "Low",
+                        recommendations: "Consider advanced filtration systems"
+                    }
+                }
+            };
+
+            return contaminantRisks[data.waterSource]?.[data.contaminantType] || {
+                riskLevel: "Unknown",
+                recommendations: "Further investigation needed"
+            };
+        }
+
+        // Populate Recommendations Tab
+        function updateRecommendations() {
+            const recommendationList = document.getElementById('recommendationList');
+            const generalRecommendations = [
+                "Regular water quality testing",
+                "Install appropriate water filtration system",
+                "Monitor local water sources",
+                "Use activated carbon filters",
+                "Consider reverse osmosis for critical applications"
+            ];
+
+            recommendationList.innerHTML = generalRecommendations.map(rec => 
+                `<li>${rec}</li>`
+            ).join('');
+        }
+
+        // Get CSRF Token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Initial recommendations load
+        updateRecommendations();
+    </script>
+</body>
+</html>
