@@ -59,16 +59,13 @@ This project presents an integrated ML + web platform that predicts whether wate
 ## 🧪 Application Preview
 
 ### 🔘 Input Interface
-![Input Form](images/input_form.png)
-
-### 📣 Prediction Result
-![Prediction Output](images/prediction_output.png)
+![Input Form](images/input_interface.png)
 
 ### 🚨 Contaminant Check
-![Contaminant Alerts](images/contaminant_check.png)
+![Contaminant Alerts](images/contaminant.png)
 
 ### 📉 Historical Trend Visualization (pH)
-![Chart.js Trend](images/ph_trend_chart.png)
+![Chart.js Trend](images/historical_data_trends.png)
 
 ---
 
