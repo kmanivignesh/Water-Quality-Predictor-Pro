@@ -65,7 +65,7 @@ This project presents an integrated ML + web platform that predicts whether wate
 ![Contaminant Alerts](images/contaminant.png)
 
 ### 📉 Historical Trend Visualization (pH)
-![Chart.js Trend](images/historical_data_trends.png)
+![Chart.js Trend](images/historical_data_insights.png)
 
 ---
 
